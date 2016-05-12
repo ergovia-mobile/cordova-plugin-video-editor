@@ -26,10 +26,13 @@
                 <param name="android-package" value="org.apache.cordova.videoeditor.VideoEditor" />
             </feature>
         </config-file>
-        <!-- add android-ffmpeg-java lib -->
-        <framework src="src/android/android-ffmpeg-java" custom="true" />
+
+        <framework src="android/build.gradle" custom="true" type="gradleReference" />
+
         <!-- add plugin class -->
         <source-file src="src/android/VideoEditor.java" target-dir="src/org/apache/cordova/videoeditor" />
+        <source-file src="src/android/CustomAndroid720pFormatStrategy" target-dir="src/org/apache/cordova/videoeditor" />
+
     </platform>
 
     <!-- ios -->

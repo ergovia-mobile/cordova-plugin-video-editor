@@ -1,5 +1,6 @@
 package org.apache.cordova.videoeditor;
 
+import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.util.Log;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
@@ -20,13 +21,13 @@ public class CustomAndroidFormatStrategy implements MediaFormatStrategy {
     private final int mFrameRate;
     private final int mShorterLength;
 
-    public CustomAndroid720pFormatStrategy() {
+    public CustomAndroidFormatStrategy() {
         this.mBitRate = DEFAULT_BITRATE;
         this.mFrameRate = DEFAULT_FRAMERATE;
         this.mShorterLength = DEFAULT_SHORT_LENGTH;
     }
 
-    public CustomAndroid720pFormatStrategy(final int bitRate, final int frameRate, final int shorterLength) {
+    public CustomAndroidFormatStrategy(final int bitRate, final int frameRate, final int shorterLength) {
         this.mBitRate = bitRate;
         this.mFrameRate = frameRate;
         this.mShorterLength = shorterLength;
@@ -35,8 +36,8 @@ public class CustomAndroidFormatStrategy implements MediaFormatStrategy {
     public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
         int width = inputFormat.getInteger("width");
         int height = inputFormat.getInteger("height");
-        short outWidth;
-        short outHeight;
+        int outWidth;
+        int outHeight;
 
         if(width > mShorterLength || height > mShorterLength) {
             if(width >= height) {
@@ -48,20 +49,17 @@ public class CustomAndroidFormatStrategy implements MediaFormatStrategy {
             }
         } else {
             outHeight = height;
-            outWidth = width
+            outWidth = width;
         }
 
-        if(longer * 9 != shorter * 16) {
-            throw new OutputFormatUnavailableException("This video is not 16:9, and is not able to transcode. (" + width + "x" + height + ")");
-        } else {
-            quality format = MediaFormat.createVideoFormat("video/avc", outWidth, outHeight);
-            format.setInteger(MediaFormat.KEY_BIT_RATE, mBitrate);
-            format.setInteger(MediaFormat.KEY_FRAME_RATE, mFrameRate);
-            format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 3);
-            format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+        MediaFormat format = MediaFormat.createVideoFormat("video/avc", outWidth, outHeight);
+        format.setInteger(MediaFormat.KEY_BIT_RATE, mBitRate);
+        format.setInteger(MediaFormat.KEY_FRAME_RATE, mFrameRate);
+        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 3);
+        format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
 
-            return format;
-        }
+        return format;
+
     }
 
     public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {

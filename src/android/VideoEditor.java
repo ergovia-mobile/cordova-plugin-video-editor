@@ -1,8 +1,6 @@
 package org.apache.cordova.videoeditor;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.text.SimpleDateFormat;
@@ -10,6 +8,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.ArrayList;
 
+import android.graphics.Bitmap;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
@@ -44,15 +43,6 @@ public class VideoEditor extends CordovaPlugin {
     private static final String TAG = "VideoEditor";
 
     private CallbackContext callback;
-
-    private static final int HighQuality = 0;
-    private static final int MediumQuality = 1;
-    private static final int LowQuality = 2;
-
-    private static final int M4V = 0;
-    private static final int MPEG4 = 1;
-    private static final int M4A = 2;
-    private static final int QUICK_TIME = 3;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
@@ -158,8 +148,8 @@ public class VideoEditor extends CordovaPlugin {
 
         if (saveToLibrary) {
             mediaStorageDir = new File(
-                Environment.getExternalStorageDirectory() + "/Movies",
-                appName
+                    Environment.getExternalStorageDirectory() + "/Movies",
+                    appName
             );
         } else {
             mediaStorageDir = new File(appContext.getExternalFilesDir(null).getPath());
@@ -181,6 +171,7 @@ public class VideoEditor extends CordovaPlugin {
 
         cordova.getThreadPool().execute(new Runnable() {
             public void run() {
+
                 try {
 
                     FileInputStream fin = new FileInputStream(inFile);
@@ -303,12 +294,12 @@ public class VideoEditor extends CordovaPlugin {
         }
         final String srcVideoPath = inFile.getAbsolutePath();
         String outputFileName = options.optString(
-            "outputFileName",
-            new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(new Date())
+                "outputFileName",
+                new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(new Date())
         );
 
         final String atTime = options.optString("atTime", "0");
-        double quality = options.optDouble("quality", 100);
+        final int quality = options.optInt("quality", 100);
         final int shorterLength = options.optInt("shorterLength", 720);
 
         final Context appContext = cordova.getActivity().getApplicationContext();
@@ -325,8 +316,8 @@ public class VideoEditor extends CordovaPlugin {
         File externalFilesDir =  appContext.getExternalFilesDir(null);
 
         final File outputFile =  new File(
-            externalFilesDir.getPath(),
-            outputFileName + ".jpg"
+                externalFilesDir.getPath(),
+                outputFileName + ".jpg"
         );
         final String outputFilePath = outputFile.getAbsolutePath();
 
@@ -338,17 +329,21 @@ public class VideoEditor extends CordovaPlugin {
 
                 try {
                     MediaMetadataRetriever mmr = new MediaMetadataRetriever();
-                    mmr.setDataSource(videoSrcPath);
+                    mmr.setDataSource(srcVideoPath);
 
-                    Bitmap bitmap = mmr.getFrameAtTime(0);
+                    final Bitmap bitmap = mmr.getFrameAtTime(0);
 
-                    outStream = outputFile.getOutputStream();
+                    outStream = new FileOutputStream(outputFile);
                     bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outStream);
 
                 } catch (Throwable e) {
 
                     if(outStream != null) {
-                        outStream.close();
+                        try {
+                            outStream.close();
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
                     }
 
                     Log.d(TAG, "exception on thumbnail creation", e);
@@ -552,7 +547,7 @@ public class VideoEditor extends CordovaPlugin {
      * @return The value of the _data column, which is typically a file path.
      */
     public static String getDataColumn(Context context, Uri uri, String selection,
-            String[] selectionArgs) {
+                                       String[] selectionArgs) {
 
         Cursor cursor = null;
         final String column = "_data";

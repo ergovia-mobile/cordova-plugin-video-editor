@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.ArrayList;
 
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
@@ -298,9 +299,9 @@ public class VideoEditor extends CordovaPlugin {
                 new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH).format(new Date())
         );
 
-        final String atTime = options.optString("atTime", "0");
+        final long atTime = options.optLong("atTime", 0);
         final int quality = options.optInt("quality", 100);
-        final int shorterLength = options.optInt("shorterLength", 720);
+        final int shorterLength = options.optInt("shorterLength", 0);
 
         final Context appContext = cordova.getActivity().getApplicationContext();
         PackageManager pm = appContext.getPackageManager();
@@ -331,10 +332,46 @@ public class VideoEditor extends CordovaPlugin {
                     MediaMetadataRetriever mmr = new MediaMetadataRetriever();
                     mmr.setDataSource(srcVideoPath);
 
-                    final Bitmap bitmap = mmr.getFrameAtTime(0);
+                    Bitmap bitmap = mmr.getFrameAtTime(atTime);
+
+                    System.out.println(shorterLength);
+
+                    if(shorterLength > 0) {
+
+                        int height = bitmap.getHeight();
+                        int width = bitmap.getWidth();
+
+                        System.out.println("height"+height);
+                        System.out.println("width"+width);
+
+                        if(height > shorterLength || width > shorterLength) {
+
+                            int scaleWidth;
+                            int scaleHeight;
+
+                            if(height > width) {
+                                scaleHeight = Double.valueOf((height * shorterLength)/(double) width).intValue();
+                                scaleWidth = shorterLength;
+                            } else {
+                                scaleHeight = shorterLength;
+                                scaleWidth = Double.valueOf((width * shorterLength)/(double) height).intValue();
+                            }
+
+                            System.out.println("scaleWidth "+scaleWidth);
+                            System.out.println("scaleHeight "+scaleHeight);
+
+                            final Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, scaleWidth, scaleHeight, false);
+                            bitmap.recycle();
+                            bitmap = resizedBitmap;
+
+                        }
+
+                    }
 
                     outStream = new FileOutputStream(outputFile);
                     bitmap.compress(Bitmap.CompressFormat.JPEG, quality, outStream);
+
+                    callback.success(outputFilePath);
 
                 } catch (Throwable e) {
 

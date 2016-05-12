@@ -41,11 +41,11 @@ public class CustomAndroidFormatStrategy implements MediaFormatStrategy {
 
         if(width > mShorterLength || height > mShorterLength) {
             if(width >= height) {
-                outWidth = width * (mShorterLength /height);
+                outWidth = Double.valueOf((width * mShorterLength)/(double) height).intValue();
                 outHeight = mShorterLength;
             } else {
                 outWidth = mShorterLength;
-                outHeight = height * (mShorterLength /width);
+                outHeight = Double.valueOf((height * mShorterLength)/(double) width).intValue();
             }
         } else {
             outHeight = height;

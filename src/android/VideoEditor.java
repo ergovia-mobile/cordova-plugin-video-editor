@@ -153,7 +153,7 @@ public class VideoEditor extends CordovaPlugin {
                     appName
             );
         } else {
-            mediaStorageDir = new File(appContext.getExternalFilesDir(null).getPath());
+            mediaStorageDir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Android/data/" + cordova.getActivity().getPackageName() + "/files/files/videos");
         }
 
         if (!mediaStorageDir.exists()) {
@@ -165,7 +165,7 @@ public class VideoEditor extends CordovaPlugin {
 
         final String outputFilePath = new File(
                 mediaStorageDir.getPath(),
-                "VID_" + outputFileName + outputExtension
+                outputFileName + outputExtension
         ).getAbsolutePath();
 
         Log.d(TAG, "outputFilePath: " + outputFilePath);
@@ -188,10 +188,10 @@ public class VideoEditor extends CordovaPlugin {
                             } catch (JSONException e) {
                                 e.printStackTrace();
                             }
+
                             PluginResult progressResult = new PluginResult(PluginResult.Status.OK, jsonObj);
                             progressResult.setKeepCallback(true);
                             callback.sendPluginResult(progressResult);
-
                         }
 
                         @Override
@@ -216,16 +216,7 @@ public class VideoEditor extends CordovaPlugin {
                                 inFile.delete();
                             }
 
-                            JSONObject jsonObj = new JSONObject();
-                            try {
-                                jsonObj.put("result", outputFilePath);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                            PluginResult progressResult = new PluginResult(PluginResult.Status.OK, jsonObj);
-                            progressResult.setKeepCallback(true);
-                            callback.sendPluginResult(progressResult);
-
+                            callback.success(outputFilePath);
                         }
 
                         @Override
@@ -314,7 +305,7 @@ public class VideoEditor extends CordovaPlugin {
         }
         final String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "Unknown");
 
-        File externalFilesDir =  appContext.getExternalFilesDir(null);
+        File externalFilesDir =  new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Android/data/" + cordova.getActivity().getPackageName() + "/files/files/videos");
 
         final File outputFile =  new File(
                 externalFilesDir.getPath(),

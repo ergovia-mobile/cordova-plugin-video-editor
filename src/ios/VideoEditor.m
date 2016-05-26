@@ -58,14 +58,13 @@
     CDVOutputFileType outputFileType = ([options objectForKey:@"outputFileType"]) ? [[options objectForKey:@"outputFileType"] intValue] : MPEG4;
     BOOL optimizeForNetworkUse = ([options objectForKey:@"optimizeForNetworkUse"]) ? [[options objectForKey:@"optimizeForNetworkUse"] intValue] : NO;
     BOOL saveToPhotoAlbum = [options objectForKey:@"saveToLibrary"] ? [[options objectForKey:@"saveToLibrary"] boolValue] : YES;
-    //float videoDuration = [[options objectForKey:@"duration"] floatValue];
-    BOOL maintainAspectRatio = [options objectForKey:@"maintainAspectRatio"] ? [[options objectForKey:@"maintainAspectRatio"] boolValue] : YES;
-    float width = [[options objectForKey:@"width"] floatValue];
-    float height = [[options objectForKey:@"height"] floatValue];
+    
+    float shorterLength = [[options objectForKey:@"shorterLength"] floatValue] ? [[options objectForKey:@"shorterLength"] floatValue] : 0.0;
     int videoBitrate = ([options objectForKey:@"videoBitrate"]) ? [[options objectForKey:@"videoBitrate"] intValue] : 1000000; // default to 1 megabit
     int audioChannels = ([options objectForKey:@"audioChannels"]) ? [[options objectForKey:@"audioChannels"] intValue] : 2;
     int audioSampleRate = ([options objectForKey:@"audioSampleRate"]) ? [[options objectForKey:@"audioSampleRate"] intValue] : 44100;
     int audioBitrate = ([options objectForKey:@"audioBitrate"]) ? [[options objectForKey:@"audioBitrate"] intValue] : 128000; // default to 128 kilobits
+    int videoDuration = ([options objectForKey:@"videoDuration"]) ? [[options objectForKey:@"videoDuration"] intValue] : 0;
 
     NSString *stringOutputFileType = Nil;
     NSString *outputExtension = Nil;
@@ -100,37 +99,28 @@
 
     AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:inputFileURL options:nil];
 
-    NSString *cacheDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    NSString *outputPath = [NSString stringWithFormat:@"%@/%@%@", cacheDir, videoFileName, outputExtension];
+    NSString *library = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    NSString *outputPath = [NSString stringWithFormat:@"%@/files/videos/%@%@", library, videoFileName, outputExtension];
     NSURL *outputURL = [NSURL fileURLWithPath:outputPath];
 
     NSArray *tracks = [avAsset tracksWithMediaType:AVMediaTypeVideo];
     AVAssetTrack *track = [tracks objectAtIndex:0];
     CGSize mediaSize = track.naturalSize;
+    float mediaDuration = track.timeRange.duration.value / track.timeRange.duration.timescale;
 
     float videoWidth = mediaSize.width;
     float videoHeight = mediaSize.height;
-    int newWidth;
-    int newHeight;
-
-    if (maintainAspectRatio) {
-        float aspectRatio = videoWidth / videoHeight;
-
-        // for some portrait videos ios gives the wrong width and height, this fixes that
-        NSString *videoOrientation = [self getOrientationForTrack:avAsset];
-        if ([videoOrientation isEqual: @"portrait"]) {
-            if (videoWidth > videoHeight) {
-                videoWidth = mediaSize.height;
-                videoHeight = mediaSize.width;
-                aspectRatio = videoWidth / videoHeight;
-            }
+    int newWidth = videoWidth;
+    int newHeight = videoHeight;
+    
+    if(shorterLength > 0) {
+        if(videoHeight > videoWidth) {
+            newWidth = shorterLength;
+            newHeight = (videoHeight * shorterLength) / videoWidth;
+        } else {
+            newWidth = (videoWidth * shorterLength) / videoHeight;
+            newHeight = shorterLength;
         }
-
-        newWidth = (width && height) ? height * aspectRatio : videoWidth;
-        newHeight = (width && height) ? newWidth / aspectRatio : videoHeight;
-    } else {
-        newWidth = (width && height) ? width : videoWidth;
-        newHeight = (width && height) ? height : videoHeight;
     }
 
     NSLog(@"input videoWidth: %f", videoWidth);
@@ -161,15 +151,15 @@
         AVEncoderBitRateKey: [NSNumber numberWithInt: audioBitrate]
     };
 
-    /* // setting timeRange is not possible due to a bug with SDAVAssetExportSession (https://github.com/rs/SDAVAssetExportSession/issues/28)
-     if (videoDuration) {
+    // setting timeRange is not possible due to a bug with SDAVAssetExportSession
+    if(videoDuration > 0 && videoDuration < mediaDuration) {
      int32_t preferredTimeScale = 600;
      CMTime startTime = CMTimeMakeWithSeconds(0, preferredTimeScale);
-     CMTime stopTime = CMTimeMakeWithSeconds(videoDuration, preferredTimeScale);
+     CMTime stopTime = CMTimeMakeWithSeconds(videoDuration + 1, preferredTimeScale);
      CMTimeRange exportTimeRange = CMTimeRangeFromTimeToTime(startTime, stopTime);
      encoder.timeRange = exportTimeRange;
-     }
-     */
+    }
+    
 
     //  Set up a semaphore for the completion handler and progress timer
     dispatch_semaphore_t sessionWaitSemaphore = dispatch_semaphore_create(0);
@@ -187,7 +177,7 @@
         do {
             dispatch_time_t dispatchTime = DISPATCH_TIME_FOREVER;  // if we dont want progress, we will wait until it finishes.
             dispatchTime = getDispatchTimeFromSeconds((float)1.0);
-            double progress = [encoder progress] * 100;
+            double progress = [encoder progress];
 
             NSMutableDictionary *dictionary = [[NSMutableDictionary alloc] init];
             [dictionary setValue: [NSNumber numberWithDouble: progress] forKey: @"progress"];
@@ -203,7 +193,7 @@
         if ([encoder status] == AVAssetExportSessionStatusCompleted) {
             NSMutableDictionary *dictionary = [[NSMutableDictionary alloc] init];
             // AVAssetExportSessionStatusCompleted will not always mean progress is 100 so hard code it below
-            double progress = 100.00;
+            double progress = 1.00;
             [dictionary setValue: [NSNumber numberWithDouble: progress] forKey: @"progress"];
 
             CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary: dictionary];
@@ -267,8 +257,7 @@
     NSString* srcVideoPath = [options objectForKey:@"fileUri"];
     NSString* outputFileName = [options objectForKey:@"outputFileName"];
     float atTime = ([options objectForKey:@"atTime"]) ? [[options objectForKey:@"atTime"] floatValue] : 0;
-    float width = [[options objectForKey:@"width"] floatValue];
-    float height = [[options objectForKey:@"height"] floatValue];
+    float shorterLength = [[options objectForKey:@"shorterLength"] floatValue];
     float quality = ([options objectForKey:@"quality"]) ? [[options objectForKey:@"quality"] floatValue] : 100;
     float thumbQuality = quality * 1.0 / 100;
 
@@ -277,16 +266,39 @@
 
     UIImage* thumbnail = [self generateThumbnailImage:srcVideoPath atTime:time];
 
-    if (width && height) {
+    if (shorterLength) {
+        
+        NSURL *fileURL = [self getURLFromFilePath:srcVideoPath];
+        
+        AVURLAsset *avAsset = [AVURLAsset URLAssetWithURL:fileURL options:nil];
+        
+        NSArray *tracks = [avAsset tracksWithMediaType:AVMediaTypeVideo];
+        AVAssetTrack *track = [tracks objectAtIndex:0];
+        CGSize mediaSize = track.naturalSize;
+        
+        float videoWidth = mediaSize.width;
+        float videoHeight = mediaSize.height;
+        
+        float width = 0;
+        float height = 0;
+        
+        if(videoHeight > videoWidth) {
+            width = shorterLength;
+            height = (videoHeight * shorterLength) / videoWidth;
+         } else {
+            width = (videoWidth * shorterLength) / videoHeight;
+            height = shorterLength;
+        }
+        
         NSLog(@"got width and height, resizing image");
         CGSize newSize = CGSizeMake(width, height);
         thumbnail = [self scaleImage:thumbnail toSize:newSize];
         NSLog(@"new size of thumbnail, width x height = %f x %f", thumbnail.size.width, thumbnail.size.height);
     }
 
-    NSString *cacheDir = [NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    NSString *outputFilePath = [cacheDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.%@", outputFileName, @"jpg"]];
-
+    NSString *library = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    NSString *outputFilePath = [NSString stringWithFormat:@"%@/files/videos/%@.%@", library, outputFileName, @"jpg"];
+    
     // write out the thumbnail
     if ([UIImageJPEGRepresentation(thumbnail, thumbQuality) writeToFile:outputFilePath atomically:YES])
     {

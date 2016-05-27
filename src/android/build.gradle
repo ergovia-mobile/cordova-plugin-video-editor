@@ -1,9 +1,12 @@
+
 repositories{
     jcenter()
+    maven { url "https://jitpack.io" }
 }
 
 dependencies {
-    compile 'net.ypresto.androidtranscoder:android-transcoder:0.1.10'
+    compile 'com.github.ergovia-mobile:android-transcoder:v0.1.10_ergovia'
+    //compile 'net.ypresto.androidtranscoder:android-transcoder:0.1.10'
 }
 
 android {

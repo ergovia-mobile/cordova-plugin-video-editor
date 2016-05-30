@@ -126,8 +126,7 @@ public class VideoEditor extends CordovaPlugin {
         final int shorterLength = options.optInt("shorterLength", 720);
         final int fps = options.optInt("fps", 24);
         final int videoBitrate = options.optInt("videoBitrate", 1000000); // default to 1 megabit
-        final int trimStart = options.optInt("trimStart", 0);
-        final int trimEnd = options.optInt("trimEnd", 0);
+        final long videoDuration = options.optLong("videoDuration", 0) * 1000 * 1000;
 
         Log.d(TAG, "videoSrcPath: " + videoSrcPath);
 
@@ -157,7 +156,7 @@ public class VideoEditor extends CordovaPlugin {
         }
 
         if (!mediaStorageDir.exists()) {
-            if (!mediaStorageDir.mkdir()) {
+            if (!mediaStorageDir.mkdirs()) {
                 callback.error("Can't access or make Movies directory");
                 return;
             }
@@ -233,7 +232,7 @@ public class VideoEditor extends CordovaPlugin {
                     };
 
                     MediaTranscoder.getInstance().transcodeVideo(fin.getFD(), outputFilePath,
-                            new CustomAndroidFormatStrategy(videoBitrate, fps, shorterLength), listener);
+                            new CustomAndroidFormatStrategy(videoBitrate, fps, shorterLength), listener, videoDuration);
 
                 } catch (Throwable e) {
                     Log.d(TAG, "transcode exception ", e);
@@ -306,6 +305,13 @@ public class VideoEditor extends CordovaPlugin {
         final String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "Unknown");
 
         File externalFilesDir =  new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Android/data/" + cordova.getActivity().getPackageName() + "/files/files/videos");
+
+        if (!externalFilesDir.exists()) {
+            if (!externalFilesDir.mkdirs()) {
+                callback.error("Can't access or make Movies directory");
+                return;
+            }
+        }
 
         final File outputFile =  new File(
                 externalFilesDir.getPath(),

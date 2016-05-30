@@ -6,7 +6,6 @@ repositories{
 
 dependencies {
     compile 'com.github.ergovia-mobile:android-transcoder:v0.1.10_ergovia'
-    //compile 'net.ypresto.androidtranscoder:android-transcoder:0.1.10'
 }
 
 android {

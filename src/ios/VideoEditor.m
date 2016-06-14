@@ -297,7 +297,7 @@
     }
 
     NSString *library = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
-    NSString *outputFilePath = [NSString stringWithFormat:@"%@/files/videos/%@.%@", library, outputFileName, @"jpg"];
+    NSString *outputFilePath = [NSString stringWithFormat:@"%@/files/videos/%@", library, outputFileName];
     
     // write out the thumbnail
     if ([UIImageJPEGRepresentation(thumbnail, thumbQuality) writeToFile:outputFilePath atomically:YES])

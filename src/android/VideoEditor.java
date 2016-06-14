@@ -315,7 +315,7 @@ public class VideoEditor extends CordovaPlugin {
 
         final File outputFile =  new File(
                 externalFilesDir.getPath(),
-                outputFileName + ".jpg"
+                outputFileName
         );
         final String outputFilePath = outputFile.getAbsolutePath();
 
@@ -338,9 +338,6 @@ public class VideoEditor extends CordovaPlugin {
                         int height = bitmap.getHeight();
                         int width = bitmap.getWidth();
 
-                        System.out.println("height"+height);
-                        System.out.println("width"+width);
-
                         if(height > shorterLength || width > shorterLength) {
 
                             int scaleWidth;
@@ -353,9 +350,6 @@ public class VideoEditor extends CordovaPlugin {
                                 scaleHeight = shorterLength;
                                 scaleWidth = Double.valueOf((width * shorterLength)/(double) height).intValue();
                             }
-
-                            System.out.println("scaleWidth "+scaleWidth);
-                            System.out.println("scaleHeight "+scaleHeight);
 
                             final Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, scaleWidth, scaleHeight, false);
                             bitmap.recycle();

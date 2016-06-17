@@ -113,6 +113,14 @@
     int newWidth = videoWidth;
     int newHeight = videoHeight;
     
+    NSString *videoOrientation = [self getOrientationForTrack:avAsset];
+    if ([videoOrientation isEqual: @"portrait"]) {
+        if (videoWidth > videoHeight) {
+            videoWidth = mediaSize.height;
+            videoHeight = mediaSize.width;
+        }
+    }
+    
     if(shorterLength > 0) {
         if(videoHeight > videoWidth) {
             newWidth = shorterLength;
